@@ -1,0 +1,6 @@
+.ash_history
+.profile
+.gitconfig
+go/pkg/mod/
+.cache/
+myproject/
