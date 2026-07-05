@@ -1,0 +1,47 @@
+name: Build Python 3.11.9 (musl/i686)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.20
+      options: --platform linux/386
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apk add --no-cache build-base linux-headers \
+            zlib-dev bzip2-dev xz-dev libffi-dev openssl-dev \
+            ncurses-dev readline-dev sqlite-dev gdbm-dev expat-dev \
+            tk-dev
+
+      - name: Configure
+        working-directory: ./Python-3.11.9
+        run: |
+          ./configure \
+            --enable-optimizations \
+            --with-lto \
+            --enable-shared \
+            --prefix=/usr/local \
+            --with-system-ffi \
+            --with-system-expat \
+            CFLAGS="-O2 -march=i686 -mtune=generic -fPIC"
+
+      - name: Build
+        working-directory: ./Python-3.11.9
+        run: make -j2
+
+      - name: Test
+        run: |
+          /usr/local/bin/python3.11 --version
+          /usr/local/bin/python3.11 -c "import sys; print('✅', sys.platform, 'built successfully')"
