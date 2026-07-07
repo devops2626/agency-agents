@@ -1,0 +1,6 @@
+/target/
+**/*.rs.bk
+*.swp
+*.swo
+rustup-init
+Cargo.lock   # optional, keep it if you want
