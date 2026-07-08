@@ -18,15 +18,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
-          apk add --no-cache build-base linux-headers \
+          apk add --no-cache build-base linux-headers wget \
             zlib-dev bzip2-dev xz-dev libffi-dev openssl-dev \
             ncurses-dev readline-dev sqlite-dev gdbm-dev expat-dev \
             tk-dev
 
+      - name: Download Python 3.11.9 source
+        run: |
+          wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz
+          tar -xzf Python-3.11.9.tgz
+
       - name: Configure
-        working-directory: ./Python-3.11.9
+        working-directory: Python-3.11.9
         run: |
           ./configure \
             --enable-optimizations \
@@ -37,11 +42,13 @@ jobs:
             --with-system-expat \
             CFLAGS="-O2 -march=i686 -mtune=generic -fPIC"
 
-      - name: Build
-        working-directory: ./Python-3.11.9
-        run: make -j2
-
-      - name: Test
+      - name: Build and Install
+        working-directory: Python-3.11.9
         run: |
-          /usr/local/bin/python3.11 --version
-          /usr/local/bin/python3.11 -c "import sys; print('✅', sys.platform, 'built successfully')"
+          make -j2
+          make install
+
+      - name: Verify Installation
+        run: |
+          python3.11 --version
+          python3.11 -c "import sys; print('✅', sys.platform, 'built successfully')"
