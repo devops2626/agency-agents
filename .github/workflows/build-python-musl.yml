@@ -10,45 +10,61 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: alpine:3.20
-      options: --platform linux/386
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
-        run: |
-          apk add --no-cache build-base linux-headers wget \
-            zlib-dev bzip2-dev xz-dev libffi-dev openssl-dev \
-            ncurses-dev readline-dev sqlite-dev gdbm-dev expat-dev \
-            tk-dev
+      - name: Set up QEMU (for multi-arch emulation)
+        uses: docker/setup-qemu-action@v2
 
-      - name: Download Python 3.11.9 source
-        run: |
-          wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz
-          tar -xzf Python-3.11.9.tgz
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Configure
-        working-directory: Python-3.11.9
+      - name: Build Python inside emulated i386/alpine container
         run: |
-          ./configure \
-            --enable-optimizations \
-            --with-lto \
-            --enable-shared \
-            --prefix=/usr/local \
-            --with-system-ffi \
-            --with-system-expat \
-            CFLAGS="-O2 -march=i686 -mtune=generic -fPIC"
+          # Run the whole build inside an emulated linux/386 alpine container.
+          # Mount the repo workspace so artifacts or logs can be inspected if needed.
+          docker run --rm --platform=linux/386 \
+            -v "${GITHUB_WORKSPACE}:/work" -w /work \
+            alpine:3.20 /bin/sh -eux -c '
+              apk add --no-cache build-base linux-headers wget ca-certificates \
+                zlib-dev bzip2-dev xz-dev libffi-dev openssl-dev \
+                ncurses-dev readline-dev sqlite-dev gdbm-dev expat-dev \
+                tk-dev
 
-      - name: Build and Install
-        working-directory: Python-3.11.9
-        run: |
-          make -j2
-          make install
+              wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz
+              tar -xzf Python-3.11.9.tgz
+              cd Python-3.11.9
 
-      - name: Verify Installation
-        run: |
-          python3.11 --version
-          python3.11 -c "import sys; print('✅', sys.platform, 'built successfully')"
+              export CFLAGS="-O2 -march=i686 -mtune=generic -fPIC"
+              export LDFLAGS="-Wl,-rpath,/usr/local/lib"
+              ./configure \
+                --enable-optimizations \
+                --with-lto \
+                --enable-shared \
+                --prefix=/usr/local \
+                --with-system-ffi \
+                --with-system-expat
+
+              # Use all available CPUs inside the container
+              make -j$(nproc)
+              make install
+
+              # verify binary exists; print lib path for debugging
+              ls -l /usr/local/bin/python3.11 || true
+              ls -l /usr/local/lib || true
+
+              # run python with LD_LIBRARY_PATH so the runtime can find libpython
+              LD_LIBRARY_PATH=/usr/local/lib /usr/local/bin/python3.11 --version
+              LD_LIBRARY_PATH=/usr/local/lib /usr/local/bin/python3.11 -c "import sys; print(\"✅\", sys.platform, sys.executable, 'built successfully')"
+            '
+
+      - name: Upload build logs (optional)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            Python-3.11.9/config.log
+            Python-3.11.9/Makefile
