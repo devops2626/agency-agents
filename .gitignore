@@ -3,4 +3,47 @@
 .gitconfig
 go/pkg/mod/
 .cache/
+<<<<<<< HEAD
 myproject/
+=======
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Personal notes and scratch files
+scratch/
+notes/
+TODO.md
+NOTES.md
+
+# Generated integration files — run scripts/convert.sh to regenerate locally
+# The scripts/ and integrations/*/README.md files ARE committed; only generated
+# agent/skill files are excluded.
+integrations/antigravity/agency-*/
+integrations/gemini-cli/skills/
+integrations/gemini-cli/gemini-extension.json
+integrations/gemini-cli/agents
+integrations/opencode/agents/
+integrations/cursor/rules/
+integrations/aider/CONVENTIONS.md
+integrations/windsurf/.windsurfrules
+integrations/openclaw/*
+integrations/qwen/agents/
+integrations/kimi/*/
+!integrations/openclaw/README.md
+!integrations/kimi/README.md
+integrations/codex/agents/*
+integrations/osaurus/agency-*/
+integrations/hermes/agency-agents-router/
+integrations/vibe/agents/
+integrations/vibe/prompts/
+graphify-out/
+Python-3.11.9/
+>>>>>>> 9191fbc (Ignore local Python source)
